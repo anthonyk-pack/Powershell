@@ -144,11 +144,21 @@ Invoke-TroubleshootingPack -Pack $network
 
 Get-Command -noun *troubleshooting* 
 
+#Object = a table row, Property = a table column, Method = an action related to a single object and makes it do something, Collection = entire set of objects (table)
+
 Get-Member #Learn more about an object GM alias
 Get-Process | Sort-Object -property VM, ID -Descending
 Get-process | ConvertTo-Html | Out-File Test1.HTML
 Get-Process | Select-Object -Property Name,ID,VM,PM | Convertto-HTML | Out-File Test2.HTML
 Get-Process | Sort-Object VM -descending | Select-Object Name,ID,VM
+
+#Select-Object to choose the properties (or columns) you want to see
+#Where-Object removes or filters objects out of the pipeline based on criteria specified
+
+#Remember that the PowerShell help files don’t contain information on objects’ properties. You’ll need to pipe the objects to Gm (Get-Member) to see a list of properties.
+#Remember that you can add Gm to the end of any pipeline that typically produces results. A command line such as Get-Process -name Notepad | Stop-Process doesn’t usually produce results, so tacking | Gm onto the end won’t produce anything either.
+#Remember that the pipeline can contain various types of objects at each step. Think about what type of object is in the pipeline, and focus on what the next command will do to that type of object.
+
 
 #Lab 8
 
@@ -161,6 +171,7 @@ Get-Date | Select-Object -Property DayofWeek
 Get-HotFix
 Get-Hotfix | Sort-Object -Property InstalledOn | Select-Object InstalledOn,InstalledBy,HotFixID
 Get-Hotfix | Sort-Object -Property Description | Select-Object Description,HotFixID,InstalledOn | ConvertTo-Html | Out-File HotFix1.HTML
+Get-HotFix | Sort Description | Select Description,InstalledOn,InstalledBy,HotFixID | ConvertTo-Html -Title "Name of Document" | Out-File HotFixReport.htm
 Get-EventLog -LogName Security -Newest 50 | Sort-Object -Property TimeGenerated,Index | Select-Object Index,TimeGenerated,Source | Out-File EventLogNewest50.txt
 
 #Command A = Get-Process Command B = Stop-Process
