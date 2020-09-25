@@ -175,6 +175,7 @@ Get-HotFix | Sort Description | Select Description,InstalledOn,InstalledBy,HotFi
 Get-EventLog -LogName Security -Newest 50 | Sort-Object -Property TimeGenerated,Index | Select-Object Index,TimeGenerated,Source | Out-File EventLogNewest50.txt
 
 #Command A = Get-Process Command B = Stop-Process
+#Pipeline parameter binding - how PS figures out which parameter of command B will accept output of Command A. ByPropertyName (Property Name match to Parameter Name) or ByValue (TypeName matching Parameter Value)
 get-process -name * | Get-Member
 Help Stop-Process -Full
 #InputObject matches between the 2 commands (Process and accept pipeline input ByValue)
@@ -189,15 +190,29 @@ import-csv .\newusers.csv |
 >> @{n='Department';e={$_.Dept}} |
 >> New-AdUser
 
-
- Get-WmiObject -Class Win32_Bios -ComputerName (Get-Content .\Computers.txt)
+get-content .\computers.txt | get-wmiobject -class win32_bios
+#If parameter doesnt accept output from Pipeline, use parentheses instead as above
+Get-WmiObject -Class Win32_Bios -ComputerName (Get-Content .\Computers.txt)
+ 
 
  get-adcomputer -filter * -searchbase "ou=domain controllers,dc=company,dc=pri"
  get-adcomputer -filter * -searchbase "ou=domain controllers,dc=testitlabs,dc=co,dc=uk" | gm
  Get-Service -computerName (Get-ADComputer -filter * -searchbase "ou=domain controllers,dc=testitlabs,dc=co,dc=uk" | Select-Object -expand name) #-Expand Name goes into the Name property and extracts its values, resulting in simple strings being returned from the command.
 
- #Lab 9
- 
+#Lab 9
+Get-Hotfix -computerName (Get-ADComputer -filter * | Select-Object -expand name)
+This should work because the expand Name takes the String value of Names for the computers which is acceptable to use in -computername of Get-Hotfix.
+#This should work, because the nested Get-ADComputer expression will return a collection of computer names and the –Computername parameter can accept an array of values.
+
+Get-ADComputer -filter * | Get-HotFix
+This wouldnt work. Hotfix isnt a parameter returned as part of the initial Get-ADComputer query.
+#This won’t work, because Get-Hotfix doesn’t accept any parameters by value. It will accept –Computername by property name, but this command isn’t doing that.
+
+Get-ADComputer -filter * | Select-Object @{l='computername';e={$_.name}} | Get-Hotfix
+This wouldnt work. The command changes the label of computer name but still doesnt generate the correct properties to pipe to Get-Hotfix.
+Get-Service -computerName (Get-ADComputer -filter * -searchbase "ou=domain controllers,dc=testitlabs,dc=co,dc=uk" | Select-Object -expand name) #-Expand Name goes into the Name property and extracts its values, resulting in simple strings being returned from the command.
+
+
 
  Get-Service | Sort-Object Status | Format-Table -groupBy Status
  Get-Service | Format-Table Name,Status,DisplayName -autoSize -wrap
