@@ -212,6 +212,20 @@ Get-ADComputer -filter * | Select-Object @{l='computername';e={$_.name}} | Get-H
 This wouldnt work. The command changes the label of computer name but still doesnt generate the correct properties to pipe to Get-Hotfix.
 Get-Service -computerName (Get-ADComputer -filter * -searchbase "ou=domain controllers,dc=testitlabs,dc=co,dc=uk" | Select-Object -expand name) #-Expand Name goes into the Name property and extracts its values, resulting in simple strings being returned from the command.
 
+#Answers
+
+Get-Hotfix -computerName (Get-ADComputer -filter * | Select-Object -expand name)
+#This should work because of the nester "Name" property for Get-Hotfix (its a String that matches to expanded "Name" property of Get-ADComputer.
+
+Get-ADComputer -filter * | Get-HotFix
+#This wont work. Get-Hotfix doesnt know what to do with the ADComputer object type output from Get-ADComputer.
+
+Get-ADComputer -filter * | Select-Object @{l='computername';e={$_.name}} | Get-Hotfix
+#This should work as the property name is converted to something that Get-Hotfix can work with from its own property list.
+
+Get-adcomputer -filter * | Select-Object @{l='computername';e={$_.name}} | Get-Process
+
+Get-Service -computerName (Get-ADComputer -filter * | Select-Object -expand name)
 
 
  Get-Service | Sort-Object Status | Format-Table -groupBy Status
@@ -224,7 +238,9 @@ Get-Service -computerName (Get-ADComputer -filter * -searchbase "ou=domain contr
  Get-Process | Format-Table Name, @{name='VM(MB)';expression={$_.VM};formatstring='F2';align='right'} -autosize
 Get-Service | Select Name,DisplayName,Status | Format-Table | ConvertTo-HTML | Out-File services.html 
 
-#Lab 10
+#Format as far right as possible with only Out- commands after it (except for Out-GridView which doesnt work)
+
+#Lab 10 Start#
 Get-Process | Format-Table Name,ID,Responding -AutoSize -Wrap
 Get-Process | Format-Table ProcessName,ID,@{name='VM(MB)';expression={$_.VM / 1MB -as [int]}},@{name='PM(MB)';expression={$_.PM / 1MB -as [int]}} -autosize
 Get-EventLog -List | Format-Table @{name='LogName';expression={$_.LogDisplayName}},@{name='RetDays';expression={$_.MinimumRetentionDays}}
@@ -233,6 +249,25 @@ Dir | Format-Wide -Property Name -Column 4
 Get-Item -Path C:\* -Include *.exe | Format-List Name,VersionInfo,@{name='Size';expression={$_.Length}} #Below is another way of doing this
 dir c:\*.exe | Format-list Name,VersionInfo,@{Name="Size";Expression={$_.length}}
 
+Get-Process | Select-Object Name,ID,Responding | Format-Table -AutoSize -Wrap
+#get-process | format-table Name,ID,Responding -autosize -Wrap
+
+Get-Process | Select-Object Name,ID,@{name='VM(MB)';expression={$_.VM / 1MB -as [int]}},@{name='PM(MB)';expression={$_.PM / 1MB -as [int]}} | Format-Table -AutoSize
+#get-process | format-table Name,ID,@{l='VirtualMB';e={$_.vm/1mb}},@{l='PhysicalMB';e={$_.workingset/1MB}} -autosize
+
+Get-Eventlog -List | Get-Member
+Get-EventLog -List | Select-Object LogDisplayName,MinimumRetentionDays
+Get-EventLog -List | Select-Object @{name='LogName';expression={$_.LogDisplayName}},@{name='RetDays';expression={$_.MinimumRetentionDays}}
+
+Get-Service | Sort-Object Status -Descending | Format-Table -GroupBy Status
+
+Get-ChildItem C:\ | Format-Wide -Column 4
+Get-ChildItem C:\ -Attributes Directory | Format-Wide -Column 4
+
+Get-ChildItem C:\Windows\*.exe | Select Name,VersionInfo,@{name='Size';expression={$_.Length}} | Format-List
+#dir c:\windows\*.exe | Format-list Name,VersionInfo,@{Name="Size";Expression={$_.length}}
+
+#Lab 10 End#
 
 Get-ADComputer -filter "Name -like '*DC'" #Filter left technique - criteria as far left as possible
 Get-Service | Where-Object -filter { $_.Status -eq 'Stopped' }
