@@ -269,6 +269,9 @@ Get-ChildItem C:\Windows\*.exe | Select Name,VersionInfo,@{name='Size';expressio
 
 #Lab 10 End#
 
+#Early filtering - retrieve only what is specified
+#Interative - use a 2nd cmdlet to filter out things you dont want.
+
 Get-ADComputer -filter "Name -like '*DC'" #Filter left technique - criteria as far left as possible
 Get-Service | Where-Object -filter { $_.Status -eq 'Stopped' }
 Get-Service | Where Status -eq 'Stopped' #Simplified syntax for above command - can be used for single comparison
@@ -279,7 +282,7 @@ Get-Process | Where-Object -FilterScript {$_.Name -notlike 'Powershell*'} | Sort
 
 Get-Service -computername (Get-Content c:\names.txt | Where-Object -filter { $_ -notlike '*dc' }) | Where-Object -filter { $_.Status -eq 'Running' }
 
-#Lab 11
+#Start of Lab 11 #
 
 Get-NetAdapter -Physical
 Get-NetAdapter | Where-Object {$_.virtual -eq $False} 
@@ -290,6 +293,24 @@ Get-Hotfix -Description "Security*" | Where-Object {$_.installedby -match "syste
 
 Get-Process | Where-Object {$_.ProcessName -eq "conhost" -or $_.ProcessName -eq "Svchost"} 
 Get-Process -Name Conhost,Svchost
+
+Get-NetAdapter | Where-Object -FilterScript { $_.Virtual -eq $False }
+#get-netadapter -physical
+ 
+Get-DnsClientCache -Type A,AAAA | Sort-Object Type
+
+Get-ChildItem c:\Windows\System32\*.exe -Recurse | Where-Object -FilterScript { $_.Length -ge 5 MB }
+Get-ChildItem c:\Windows\System32\*.exe | Where-Object -FilterScript { $_.Length -ge 5MB }
+
+Get-HotFix -Description "Security Update"
+
+Get-Hotfix | Where-Object -FilterScript { $_.Installedby -eq 'NT Authority\System' -AND $_.Description -eq 'Security Update' }
+#get-hotfix -Description Update | where {$_.InstalledBy -eq "NT Authority\System"}
+
+Get-Process | Where-Object -FilterScript {$_.Name -eq 'Conhost' -or $_.Name -eq 'svchost'}
+#get-process -name svchost,conhost
+
+# End of Lab 11 #
 
 Help *privilege*
 Get-Command -Noun *priv*
