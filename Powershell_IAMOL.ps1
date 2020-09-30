@@ -312,17 +312,20 @@ Get-Process | Where-Object -FilterScript {$_.Name -eq 'Conhost' -or $_.Name -eq 
 
 # End of Lab 11 #
 
-Help *privilege*
-Get-Command -Noun *priv*
-find-module *privilege* | format-table -auto
-Install-Module PoshPrivilege
-get-command -module PoshPrivilege | format-table -auto
-Get-Privilege
-Add-Privilege -AccountName Administrators -Privilege SeDenyBatchLogonRight
-Add-Privilege -AccountName Administrators -Privilege SeDenyBat
+
+#Step 1 - Find The Commands
+get-command *privilege
+help *privilege*
+Find-Module *privilege* | Format-Table -AutoSize #Searched Powershell Gallery Online
+install-module -Name PoshPrivilege #Install relevant module found online
+Get-Command -Module PoshPrivilege | format-table -AutoSize
+Help Add-Privilege -full
+Get-privilege
+
+Add-Privilege -AccountName administrators -Privilege SeDenyBatchLogonRight
 Get-Privilege -Privilege SeDenyBatchLogonRight
 
-#Lab 12
+#Start of Lab 12#
 
 mkdir -Name Labs -Path C:\
 New-SmbShare -Name Labs -Path C:\Labs -ChangeAccess Everyone -FullAccess Administrators -CachingMode Documents  
@@ -335,6 +338,20 @@ $myShare = New-SmbShare -Name Labs -Path C:\Labs\ `
 -FullAccess Administrators -CachingMode Documents
 #get the share permissions
 $myShare | Get-SmbShareAccess
+
+
+help *share
+help New-SmbShare -full
+get-smbshare -Name Labs | fl -Property *
+
+
+MKDIR C:\Labs
+
+$myshare = New-SMBShare -Name Labs -Path C:\Labs -FullAccess Administrators -ChangeAccess Everyone -CachingMode Documents -Verbose
+
+$myshare | Get-SmbShareAccess
+
+#End of Lab 12#
 
 
 Enable-PSRemoting
