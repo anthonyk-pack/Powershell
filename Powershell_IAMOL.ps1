@@ -353,13 +353,24 @@ $myshare | Get-SmbShareAccess
 
 #End of Lab 12#
 
+#PS uses WS-MAN as comms protocol for remoting (HTTP/HTTPS - 5985 & 5986) via WinRM service.
+#From Objects to XML (Serialisation) & From XML to Objects (Deserialisation)
 
 Enable-PSRemoting
 Enter-PSSession -computerName Server-R2 #1to1 session with a device
 Exit-PSSession
 
-Invoke-Command -computerName Server-R2,Server-DC4,Server12 -command { Get-EventLog Security -newest 200 | Where { $_.EventID -eq 1212 }} #1toMany
+# Your permissions and privileges carry over across the remote connection. Your copy of
+# PowerShell will pass along whatever security token it’s running under (it does this with
+# Kerberos, so it doesn’t pass your username or password across the network). Any command
+# you run on the remote computer will run under your credentials, so you’ll be
+# able to do anything you’d normally have permission to do. It’s as if you logged into
+# that computer’s console and used its copy of PowerShell directly.
 
+Invoke-Command -computerName Server-R2,Server-DC4,Server12 -command { Get-EventLog Security -newest 200 | Where { $_.EventID -eq 1212 }} #1toMany
+Get-EventLog Security -newest 200 -computerName Server-R2,Server-DC4,Server12 | Where { $_.EventID -eq 1212 } #Same result as above but computers contact sequentially, this runs on local machines and pulls information across network to it!
+
+Invoke-Command -computerName localhost -command { Get-EventLog Security -newest 200 | Where { $_.EventID -eq 1212 }}
 Invoke-Command -command { dir } -computerName (Get-Content webservers.txt)
 
 Invoke-Command -command { dir } -computerName (Get-ADComputer -filter * -searchBase "ou=Sales,dc=company,dc=pri" | Select-Object -expand Name )
@@ -383,6 +394,7 @@ Invoke-Command -ComputerName (Get-content C:\Computers.txt) -Command {Get-EventL
 Invoke-Command -ComputerName PC1 -Command { Get-ItemProperty -Path "Registry::HKEY_Local_Machine\SOFTWARE\Microsoft\Windows NT\CurrentVersion" | Select-Object ProductName,EditionID,CurrentVersion }
 # Invoke-command –scriptblock{get-itemproperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\' | Select ProductName,EditionID,CurrentVersion} -computername Server01, Server02
 
+#End of Lab 13#
 
 Get-CimInstance -Namespace root\securitycenter2 -ClassName antispywareproduct
 Get-WmiObject -Namespace root\CIMv2 -list | where name -like '*dis*'
