@@ -406,6 +406,8 @@ Get-WmiObject win32_operatingsystem | gm
 gwmi -class win32_desktop -filter "name='COMPANY\\Administrator'"
 Gwmi Win32_BIOS | Format-Table SerialNumber,Version -auto
 
+#Wildcard is % rather than usual *
+
 gwmi -class win32_bios -computer server-r2,localhost |
 format-table @{label='ComputerName';expression={$_.__SERVER}},
 @{label='BIOSSerial';expression={$_.SerialNumber}},
@@ -417,7 +419,7 @@ select-object -expand BuildNumber}
 Get-CimInstance -ClassName Win32_LogicalDisk
 invoke-command -ScriptBlock { Get-CimInstance -ClassName win32_process } -ComputerName WIN8 -Credential DOMAIN\Administrator
 
-#Lab 14
+#Start of Lab 14 #
 
 Get-CimClass win32_networkadapterconfiguration | select -expand methods | where Name -match "dhcp"
 
@@ -438,6 +440,31 @@ get-cimclass -namespace root/SecurityCenter2 -ClassName *product
 get-ciminstance -namespace root/SecurityCenter2 -ClassName
 AntiSpywareProduct
 
+Get-WmiObject -Namespace root\CIMv2 -list | where name -like '*network*'
+Get-WmiObject Win32_NetworkAdapterConfiguration | gm
+Get-WmiObject Win32_NetworkAdapterConfiguration | Select-Object DNSHostname,Description,IPAddress
+ReleaseDHCPLease
+
+Get-WmiObject Win32_bios -ComputerName Localhost | gm
+
+Get-WmiObject Win32_bios -ComputerName Localhost |
+Format-Table @{label='ComputerName';expression={$_.__SERVER}},
+@{label='OSBuild';expression={gwmi -class win32_operatingsystem -comp $_.__SERVER | select-object -expand BuildNumber}},
+@{label='OSDescription';expression={$_.Caption}},
+@{label='BIOSSerial';expression={$_.SerialNumber}} -AutoSize
+# get-wmiobject win32_operatingsystem | Select BuildNumber,Caption,@{l='Computername';e={$_.__SERVER}},@{l='BIOSSerialNumber';e={(gwmi win32_bios).serialnumber }} | ft -auto
+
+get-wmiobject win32_quickfixengineering
+
+get-wmiobject win32_service | fl *
+get-wmiobject win32_service | Select-Object Name,State,StartMode,StartName
+# get-ciminstance win32_service | Select Name,State,StartMode,StartName
+
+Get-CimClass -Namespace root\securitycenter2 -ClassName *product*
+
+Get-CimInstance -Namespace root\securitycenter2 -ClassName antivirusproduct
+
+#End of Lab 14 #
 
 start-job -scriptblock { dir C:\} #Use Absolute paths otherwise you may get inconsistent results
 start-job -scriptblock {get-eventlog security -computer LON-LT-HP049} #Job runs locally on the machine but PSRemoting needs to be enabled for subject machine
