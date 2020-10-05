@@ -481,26 +481,26 @@ get-job | where { -not $_.HasMoreData } | remove-job #Remove jobs
 
 Register-ScheduledJob -Name DailyProcList -ScriptBlock {Get-Process} -Trigger (New-JobTrigger -Daily -At 2am) -ScheduledJobOption (New-ScheduledJobOption -WakeToRun -RunElevated)
 
-#Lab 15
+#Start of Lab 15 *
 
-Start-Job {dir c:\ -recurse –filter '*.ps1'}
-receive-job -id 5 -Keep
+start-job -ScriptBlock {Get-ChildItem c:\*.ps1 -Recurse}
+#Start-Job {dir c:\ -recurse –filter '*.ps1'}
 
-Invoke-Command -ScriptBlock {dir C:\ -Recurse -Filter '*.ps1'} -ComputerName (Get-Content Computers.txt) -AsJob -JobName PSScriptInventory
+invoke-command -command {Get-ChildItem c:\*.ps1 -Recurse} -computername (get-content .\computers.txt ) -asjob -jobname MyRemoteJob
+#Invoke-Command –scriptblock {dir c:\ -recurse –filter *.ps1} –computername (get-content computers.txt) -asjob
 
-$Trigger = New-JobTrigger -Weekly -DaysOfWeek Monday,Tuesday,Wednesday,Thursday,Friday -At 6am
-$Schedule = New-scheduledJobOption -WakeToRun -RunElevated
-$Script = Get-EventLog -LogName System -Newest 25
-Register-ScheduledJob -Name 25SystemEventsDaily -ScriptBlock {$Script} -Trigger $Trigger -ScheduledJobOption $Schedule | Export-Clixml SystemEvents.xml
+Register-ScheduledJob -Name EventLogs -ScriptBlock {Get-EventLog -Logname System} -Trigger (New-JobTrigger -DaysOfWeek -At 6am) -ScheduledJobOption (New-ScheduledJobOption -WakeToRun -RunElevated) | Export-Clixml Events.xml
 
-#Correct Answer
-$Trigger=New-JobTrigger -At "6:00AM" -DaysOfWeek "Monday","Tuesday","Wednesday","Thursday","Friday" –Weekly
-$command={ Get-EventLog -LogName System -Newest 25 -EntryType Error| Export-Clixml c:\work\25SysErr.xml}
-Register-ScheduledJob -Name "Get 25 System Errors" -ScriptBlock $Command -Trigger $Trigger
+$Trigger=New-JobTrigger -At "6:00AM" -DaysOfWeek "Monday",
+"Tuesday","Wednesday","Thursday","Friday" –Weekly
+$command={ Get-EventLog -LogName System -Newest 25 -EntryType Error
+| Export-Clixml c:\work\25SysErr.xml}
+Register-ScheduledJob -Name "Get 25 System Errors" -ScriptBlock
+$Command -Trigger $Trigger
 #check on what was created
 Get-ScheduledJob | Select *
 
-receive-job -id 5 -Keep
+Receive-Job -Id -keep
 
 #Batch CMDLETS - The Preferred Way
 Get-Service -name BITS,Spooler,W32Time | Set-Service -startuptype Automatic #Batch CMDLET example
