@@ -502,6 +502,8 @@ Get-ScheduledJob | Select *
 
 Receive-Job -Id -keep
 
+#End of Lab 15#
+
 #Batch CMDLETS - The Preferred Way
 Get-Service -name BITS,Spooler,W32Time | Set-Service -startuptype Automatic #Batch CMDLET example
 Get-Service -name BITS,Spooler,W32Time -computer Server1,Server2,Server3 | -Service -startuptype Automatic #No Output
@@ -516,18 +518,48 @@ Get-CimInstance -classname win32_networkadapterconfiguration -filter "descriptio
 Get-WmiObject Win32_Service -filter "name = 'BITS'" | ForEach-Object -process { $_.change($null,$null,$null,$null,$null,$null,$null,"P@ssw0rd") }
 # gwmi win32_service -fi "name = 'BITS'" | % {$_.change($null,$null,$null,$null,$null,$null,$null,"P@ssw0rd") }
 
-#Lab 16
+Get-Service -name *B* | Stop-Service #Batch CMDLET
+Get-Service -name *B* | ForEach-Object { $_.Stop()} #For-Each Object
+Get-WmiObject Win32_Service -filter "name LIKE '%B%'" | Invoke-WmiMethod -name StopService #WMI
+Get-WmiObject Win32_Service -filter "name LIKE '%B%'" | ForEach-Object { $_.StopService()} #WMI and For-Each Object
+Stop-Service -name *B* #Stop Service
 
-Get-Service | Get-Member -MemberType Method #Answer = Pause
-Get-Process | Get-Member -MemberType Method #Answer = Kill
-Get-WmiObject Win32_Process | Get-Member -MemberType Method #Answer = Terminate
+You can never pipe anything to a method. You can pipe only from one cmdlet to
+another. If a cmdlet doesn’t exist to do what you need, but a method does, then you
+pipe to ForEach-Object and have it execute the method.
+For example, suppose you retrieve something by using a Get-Something cmdlet. You
+want to delete that something, but there’s no Delete-Something or Remove-Something
+cmdlet. But the Something objects do have a Delete method. You can do this:
 
-Get-Process -ProcessName Note* | Stop-Process #1
-Get-Process -name Note* | ForEach-Object { $_.Kill()} #2
-Get-WmiObject -class Win32_Process -filter "name Like 'Note%'" | Invoke-WmiMethod -name terminate #4
-Stop-Process -Name Note* #4
+#Get-Something | ForEach-Object { $_.Delete() }
+
+
+#Start of Lab 16 #
+
+Get-Service | gm
+Pause method
+#get-service | Get-Member -MemberType Method
+
+Get-Process | gm
+Kill method
+#get-process | Get-Member -MemberType Method
+
+Get-WmiObject -Class Win32_Process -list | fl *
+Terminate method
+#Get-CimClass win32_process | select -ExpandProperty method
+
+Get-Process -ProcessName notepad | Stop-Process #Batch CMDLET
+Get-Process -ProcessName notepad | ForEach-Object { $_.Kill()} #For-Each Object
+Stop-Process -ProcessName Notepad #Stop Service
+
+Get-WmiObject -Namespace root\CIMv2 -list | where name -like '*process*'
+Get-WmiObject Win32_Process | gm
+Get-WmiObject Win32_process -filter {name = 'notepad.exe'}  | ForEach-Object { $_.Terminate()}#WMI and For-Each Object
+Get-WmiObject Win32_process -filter {name = 'notepad.exe'} | Invoke-WmiMethod -name Terminate #WMI
 
 Get-content computers.txt | foreach {$_.ToUpper()}
+
+#End of Lab 16
 
 Get-ExecutionPolicy #Use Restricted on non script machines and Remote Signed for machines running scripts
 Set-AuthenticodeSignature #Apply a digital certificate to a script
