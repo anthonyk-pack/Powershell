@@ -561,9 +561,16 @@ Get-content computers.txt | foreach {$_.ToUpper()}
 
 #End of Lab 16
 
+#Execution Policy - This machine-wide setting governs the scripts that PowerShell will execute
+
 Get-ExecutionPolicy #Use Restricted on non script machines and Remote Signed for machines running scripts
 Set-AuthenticodeSignature #Apply a digital certificate to a script
 
+#Lab 17
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+
+#Use {} To contain a variable with a space in the name
 $var = "LON-LT-HP049"
 get-wmiobject win32_computersystem -comp $var
 $var = 'What does $var contain?'
@@ -572,7 +579,7 @@ $computername = 'LON-LT-HP049'
 $phrase = "The computer name is $computername"
 
 $computername = 'SERVER-R2'
-$phrase = "`$computername contains $computername"
+$phrase = "`$computername contains $computername" # ` preceding the work changes the variable to literal
 
 $computername = 'SERVER-R2'
 $phrase = "`$computername`ncontains`n$computername" #`n creates a new line (about_escape)
@@ -599,15 +606,25 @@ $firstname
 
 $number = Read-Host "Enter a number"
 $number = $number * 10 #Doesnt work as the |gm is a string and not integer
+$number
+$number | gm
 
 [int]$number = Read-Host "Enter a number"
 $number = $number * 10 #Works as its an integer
+$number
 
+#[int] - Numbers
+#[Single] & [double] - Numbers with a decimal portion
+#[string] - Characters
+#[char] - Exactly one character
+#[xml] - XML document
+#[adsi] - AD Service Interface query e.g. [adsi]$user = "WinNT:\\MYDOMAIN\Administrator,user"
 
 #Lab 18
 
 invoke-command {get-wmiobject win32_bios} –computername LON-LT-HP049,$env:computername –asjob
-$results=Receive-Job 7 –keep
+Get-Job
+$results=Receive-Job 8 –keep
 $results
 $results | export-clixml bios.xml
 
@@ -621,17 +638,23 @@ $computername = [Microsoft.VisualBasic.Interaction]::InputBox('Enter a computer 
 
 write-host "COLORFUL!" -fore yellow -back magenta
 
+write-output "Hello" | where-object { $_.length -gt 10 }#Doesnt output as the Hello text is dropped by the pipeline
+write-host "Hello" | where-object { $_.length -gt 10 } #Write-Host outputs directly to the screen, ignoring the pipeline
+
 #Lab 19
 
-$number = 100 * 10 
-Write-Output $number
+100*10 | Write-Output
+#Write-Output (100*10)
 
-write-host (100 * 10)
+100*10 | write-host
+#Write-Host (100*10)
 
-$username = Read-Host "Enter your name"
-write-host "$username" -ForegroundColor Yellow
+$computername = read-host "Enter a computer name" 
+write-host $computername -fore yellow
 
-Read-Host "Enter your name" | Where-Object { $_.Length -gt 5 } 
+$name = read-host "Enter a name"
+write-output $name | where-object { $_.length -gt 10 }
+#Read-Host "Enter a name" | where {$_.length -gt 5}
 
 
 new-pssession -computername server-r2,server17,dc5
