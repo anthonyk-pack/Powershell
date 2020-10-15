@@ -665,8 +665,8 @@ $iis_servers = new-pssession -comp web1,web2,web3 -credential WebAdmin
 $s_server1,$s_server2 = new-pssession -computer server-r2,dc01 #Create separate sessions within the same variable.
 
 $sessions = New-PSSession -ComputerName LON-LT-HP049,localhost
-enter-pssession -session $sessions[0]
-enter-pssession -session ($sessions | where { $_.computername -eq 'LON-LT-HP049' })
+enter-pssession -session $sessions[0] #Connect to session on first machine in variable
+enter-pssession -session ($sessions | where { $_.computername -eq 'LON-LT-HP049' }) #Connect to session via name within variable
 enter-pssession -session (get-pssession -computer LON-LT-HP049)
 Get-PSSession -ComputerName LON-LT-HP049 | Enter-PSSession
 Disconnect-PSSession -Id 4
@@ -677,30 +677,31 @@ invoke-command -command { get-wmiobject -class win32_process } -session (get-pss
 
 #Lab 20
 
-Get-PSSession | Remove-PSSession
+Get-PSSession -ComputerName LON-LT-HP049 | Remove-PSSession
 
-$Session = New-PSSession -ComputerName Server2012
-Enter-PSSession -Session $Session
+$session = New-PSSession -ComputerName LocalHost
+Enter-PSSession -Session $session
 
-Enter-PSSession -Session $Session[0]
+Enter-PSSession -Session $session
 Get-Process
-Exit
+Exit-PSSession
 
-Invoke-Command -command { Get-Service } -Session $Session
+Invoke-Command -ScriptBlock {get-service} -Session $session
 
-invoke-command -command { get-eventlog -LogName Security -newest 20 } -session (get-pssession –comp LON-LT-HP049)
+invoke-command -command { Get-EventLog Security -Newest 20 } -session (get-pssession –comp LocalHost)
 
-Invoke-Command -command { import-module ServerManager } -Session $Session
+Invoke-Command -ScriptBlock {Import-Module ServerManager} -Session $session #Load Server Manager module on remote machine
 
-$Session = New-PSSession -ComputerName Server2012
-Invoke-Command -command { Import-Module ServerManager } -Session $Session
-Import-PSSession -Session $Session -Module ServerManager -Prefix rem
+Import-PSSession -Session $session -Prefix rem -Module ServerManager #Import Server Manager module commands to local machine (adding rem to imported nouns)
 
-Get-remWindowsFeature
+Get-RemWindowsFeature
 
-Remove-PSSession -Session $session
+Get-RemWindowsFeature
 
+#End of Lab 20#
 
+#Global Scope (The Powershell or ISE session - any variables created there are applicable here and referenced from child scopes if nothing exists at child scope (e.g. within a script))
+#Child scope (such as a Script). This means the same variable can exist at both levels and contain different values. You lose access to the same named variables in the Global scope.
 
 Get-WmiObject -class Win32_LogicalDisk -computername localhost -filter "drivetype=3" | 
 Sort-Object -property DeviceID | 
@@ -708,6 +709,42 @@ Format-Table -property DeviceID,
 @{label='FreeSpace(MB)';expression={$_.FreeSpace / 1MB -as [int]}}, 
 @{label='Size(GB)';expression={$_.Size / 1GB -as [int]}},
 @{label='%Free';expression={$_.FreeSpace / $_.Size * 100 -as [int]}}
+
+#Lab 21#
+
+<#
+.SYNOPSIS
+Get drives based on percentage free space
+.DESCRIPTION
+This command will get all local drives that have less than the specified
+percentage of free space available.
+.PARAMETER computername
+The computer name, or names, to query. Default: Localhost.
+.PARAMETER minpercentfree
+The minimum percent free diskspace. This is the threshhold. The default value
+is 10. Enter a number between 1 and 100.
+
+.EXAMPLE
+PS C:\> Get-Disk -minimum 20
+#>
+
+param (
+    $computername='localhost',
+    $MinimumPercentFree='10'
+)
+
+#Convert minimum percent free
+$minpercent = $MinimumPercentFree/100
+
+Get-WmiObject Win32_LogicalDisk -comp $computername `
+-filter "drivetype=3" |
+Where { ($_.FreeSpace / $_.Size) -lt $MinimumPercentFree } |
+Select -Property DeviceID,FreeSpace,Size
+
+#End of Lab 21 #
+
+# [Parameter(Mandatory=$True)] before a parameter will make PS prompt for input
+# [Alias('hostname')] before a parameter lets you use the value for the parameter (hostname instead of computername)
 
 Get-PSSessionConfiguration
 
@@ -767,3 +804,8 @@ Get-MailboxStatistics -Server Exchange2010 |
 
 #Get Last Logon Time to Exchange Mailbox 
 Get-MailboxStatistics -Server Exchange2010 | sort LastLogonTime -Descending | Export-CSV c:\Temp\Mailboxes1.csv -NoTypeInformation
+
+#Get process and sort by VM and CPU
+get-process | Select-Object Name,VM,CPU | Sort-Object CPU -Descending | Format-Table Name, @{name='VM(MB)';expression={$_.VM / 1MB -as [int]}},CPU -AutoSize
+
+get-process | Select-Object Name,VM,CPU,WS | Sort-Object WS -Descending | Format-Table Name,VM,CPU,@{name='WS';expression={$_.WS / 1MB -as [int]}} -AutoSize
