@@ -760,6 +760,22 @@ Enable-WSManCredSSP -Role Client -DelegateComputer [computername] #Allows multih
 
 #Lab 23
 
+<# 
+Create a remoting endpoint named TestPoint on your local computer. Configure the
+endpoint so that the SmbShare module is loaded automatically, but so that only the
+Get-SmbShare cmdlet is visible from that module. Also ensure that key cmdlets such as
+Exit-PSSession are available, but no other core PowerShell cmdlets can be used.
+Don’t worry about specifying special endpoint permissions or designating a “run as”
+credential.
+Test your endpoint by connecting to it using Enter-PSSession (specify localhost
+as the computer name, and TestPoint as the configuration name). When connected,
+run Get-Command to ensure that only the designated handful of commands can be seen.
+Note that this lab might be possible only on Windows 8, Windows Server 2012, and
+later versions of Windows; the SmbShare module didn’t ship with earlier versions of
+Windows.
+
+#>
+
 New-PSSessionConfigurationFile -Path C:\SMBShareEndpoint.pssc -ModulesToImport SMBShare -SessionType RestrictedRemoteServer -CompanyName "My Company" -Author "Author Name"`
 -Description "restricted SMBShare Endpoint" -PowerShellVersion '3.0'
 
@@ -769,19 +785,80 @@ Enter-PSSession -ComputerName localhost -ConfigurationName TestPoint
 get-command
 exit-pssession
 
+#End of Lab 23#
 
+#Regular expression defines a text pattern e.g. an IPV4 address
 
+get-childitem -filter *.log -recurse | select-string -pattern "\s40[0-9]\s" | format-table Filename,LineNumber,Line -wrap
 
- #Yes because -Expand Name is feeding string output to the -ComputerName parameter as required.
- #No because you cant feed the output Type (ADComputer) into any parameter of Get-Hotfix which expects a String for the ComputerName.
- #Yes
- Get-Service –Computername (get-adcomputer -filter * | Select-Object –expandproperty name)
- 
- Get-ADComputer -filter * | Select-Object @{l='computername';e={$_.name}} | Get-Process 
- Get-Service -ComputerName (Get-ADComputer -filter *)
- 
- $NetAdapterName = Get-NetAdapter -Name Ethernet | Select MacAddress
- Get-ComputerInfo | Select-Object -Property BiosSeralNumber,CSDnsHostName,{Get-NetAdapter -Name Ethernet | Select MacAddress}
+get-eventlog -LogName security | where { $_.eventid -eq 4624 } | select -ExpandProperty message | select-string -pattern "WIN[\W\w]+TM[234][0-9]\$"
+
+#Start of Lab 24#
+
+#Get all files in your Windows directory that have a two-digit number as part of the name.
+Get-ChildItem -Path c:\Windows | Where-Object { $_.Name -match "\d{2}" }
+# dir c:\windows | where {$_.name -match "\d{2}"}
+
+#Find all processes running on your computer that are from Microsoft, and display the process ID, name, and company name. 
+get-process | where {$_.company -match "^Microsoft"} | Select Name,ID,Company
+
+#In the Windows Update log, usually found in C:\Windows, you want to display only the lines where the agent began installing files. You may need to open the file in Notepad to figure out what string you need to select.
+get-content C:\Windows\WindowsUpdate.log | Select-string "Start[\w+\W+]+Agent: Installing Updates"
+
+#Using the Get-DNSClientCache cmdlet, display all listings in which the Data property is an IPv4 address.
+get-dnsclientcache | where { $_.data -match "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"}
+
+#End of Lab 24#
+
+1000 / 3 -as [int]
+
+123.45 -is [int]
+"SERVER-R2" -is [string]
+$True -is [bool]
+(Get-Date) -is [datetime]
+
+"192.168.34.12" -replace "34","15"
+
+$array = "one","two","three","four","five"
+$array -join "|"
+$string | out-file data.dat
+
+$array = (gc computers.tdf) -split "`t" #Splits the contents of the array into elements. "`t" defines the tab character.
+
+'this' -contains '*his*'
+'this' -like '*his*' #Like is designed for use for wildcard string comparisons
+
+$collection = 'abc','def','ghi','jkl'
+$collection -contains 'abc'
+$collection -contains 'xyz' #Contains used to test whether a given object exists within a collection
+
+$collection = 'abc','def','ghi','jkl'
+'abc' -in $collection
+'xyz' -in $collection #Same as Contains but flips the order of the operands
+
+$computername = "SERVER17"
+$computername.tolower()
+
+$username = " Don "
+$username.Trim()
+
+#Pipe to Get-Member to revewal properties and methods for a cmdlet
+
+(get-date).month
+
+$today = get-date
+$90daysago = $today.adddays(-90)
+$90daysago
+$90daysago.toshortdatestring()
+
+get-wmiobject win32_operatingsystem | select lastbootuptime #WMI does return a user friendly date/time so a method is needed
+
+$os = get-wmiobject win32_operatingsystem
+$os.ConvertToDateTime($os.lastbootuptime)
+
+get-wmiobject win32_operatingsystem | select BuildNumber,__SERVER, @{l='LastBootTime';e={$_.ConvertToDateTime($_.LastBootupTime)}}
+
+$PSDefaultParameterValues.Add('Invoke-Command:Credential' {Get-Credential -Message 'Enter administrator credential' -UserName Administrator})
 
 
 
@@ -809,3 +886,18 @@ Get-MailboxStatistics -Server Exchange2010 | sort LastLogonTime -Descending | Ex
 get-process | Select-Object Name,VM,CPU | Sort-Object CPU -Descending | Format-Table Name, @{name='VM(MB)';expression={$_.VM / 1MB -as [int]}},CPU -AutoSize
 
 get-process | Select-Object Name,VM,CPU,WS | Sort-Object WS -Descending | Format-Table Name,VM,CPU,@{name='WS';expression={$_.WS / 1MB -as [int]}} -AutoSize
+
+#GPO
+Get-GPO -all -domain 
+Backup-GPO -DisplayName "Computer Config - USB Lockdown" -Path C:\Temp -Comment "USB Lockdown"
+
+New-GPO -Name ""RA-Computer Config - USB Lockdown" -Comment "USB Lockdown"
+
+#Output Guest Users Who Accepted Invite To Azure
+Connect-AzureAD -Confirm
+Get-AzureADUser -Filter "UserType eq 'Guest'" -all $true | Where-Object Userstate -eq "Accepted" | select Displayname,Mail,Userstate | Export-Csv C:\Temp\AcceptedTeachers120221.csv
+
+#Convert Users from Guest to Member
+
+Connect-MsolService
+Set-MsolUser -UserPrincipalName rrichardson_engineeringuk.com#EXT#@bigbangcompetition.onmicrosoft.com -UserType Member
